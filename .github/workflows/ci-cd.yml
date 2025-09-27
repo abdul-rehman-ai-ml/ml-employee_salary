@@ -36,10 +36,16 @@ jobs:
       - name: Deploy to AWS Lambda
         run: |
           set -e
-          # Install production dependencies into root for Lambda
-          pip install -r requirements.txt -t .
-          # Build clean zip
-          zip -r deploy.zip . -x "*.git*" -x "__pycache__/*" -x "*.md" -x ".github/*" -x "tests/*"
+          # Install only production dependencies
+          pip install -r requirements.txt -t ./lambda_package
+          # Copy your source code
+          cp -r src/* ./lambda_package/
+          # Build zip from lambda_package, excluding unnecessary files
+          cd lambda_package
+          zip -r ../deploy.zip . -x "*.pyc" -x "__pycache__/*" -x "tests/*" -x "docs/*"
+          cd ..
+          # Show zip file size for debugging
+          ls -lh deploy.zip
           # Deploy
           aws lambda update-function-code \
             --function-name ml-employee-salary-predictor \
