@@ -4,7 +4,7 @@ import pandas as pd
 
 def test_model_r2():
     model = joblib.load("model/model.pkl")
-    df = pd.read_csv("data/salary_data.csv")
+    df = pd.read_csv("data/employee_salary.csv")
     X = df[["Experience", "Education_Level", "Age", "Working_Hours"]]
     y = df["Salary"]
     r2 = model.score(X, y)
