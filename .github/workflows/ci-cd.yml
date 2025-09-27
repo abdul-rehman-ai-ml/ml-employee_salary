@@ -1,0 +1,46 @@
+name: Train → Test → Deploy to AWS Lambda
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ci-cd:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies (for testing)
+        run: pip install -r requirements.txt
+
+      - name: Retrain Model
+        run: python src/train.py
+
+      - name: Run Tests
+        run: python -m pytest tests/
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.EM_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.EM_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy to AWS Lambda
+        run: |
+          set -e
+          # Install production dependencies into root for Lambda
+          pip install -r requirements.txt -t .
+          # Build clean zip
+          zip -r deploy.zip . -x "*.git*" -x "__pycache__/*" -x "*.md" -x ".github/*" -x "tests/*"
+          # Deploy
+          aws lambda update-function-code \
+            --function-name ml-employee-salary-predictor \
+            --zip-file fileb://deploy.zip
